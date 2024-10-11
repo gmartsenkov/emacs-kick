@@ -250,7 +250,7 @@
   ;; Configure font settings based on the operating system.
   ;; Ok, this kickstart is meant to be used on the terminal, not on GUI.
   ;; But without this, I fear you could start Graphical Emacs and be sad :(
-  (set-face-attribute 'default nil :family "JetBrainsMono Nerd Front"  :height 100)
+  (set-face-attribute 'default nil :family "JetBrainsMono Nerd Font"  :height 100)
   (when (eq system-type 'darwin)       ;; Check if the system is macOS.
     (setq mac-command-modifier 'meta)  ;; Set the Command key to act as the Meta key.
     (set-face-attribute 'default nil :family "JetBrainsMono Nerd Font" :height 130))
@@ -453,6 +453,13 @@
   :hook
   (after-init . marginalia-mode))
 
+
+;;; Projectile
+
+(use-package projectile
+  :ensure t
+  :custom
+  (projectile-create-missing-test-files t))
 
 ;;; CONSULT
 ;; Consult provides powerful completion and narrowing commands for Emacs. 
@@ -723,7 +730,7 @@
   (evil-define-key 'normal 'global (kbd "<leader>hv") 'describe-variable)
   (evil-define-key 'normal 'global (kbd "<leader>hf") 'describe-function)
   (evil-define-key 'normal 'global (kbd "<leader>hk") 'describe-key)
-  (evil-define-key 'normal 'global (kbd "<leader>bd") 'kill-this-buffer)
+  (evil-define-key 'normal 'global (kbd "<leader>bd") (lambda () (interactive) (kill-buffer (current-buffer))))
   (evil-define-key 'normal 'global (kbd "<leader>wu") 'winner-undo)
   (evil-define-key 'normal 'global (kbd "<leader>wv") 'split-window-right)
   (evil-define-key 'normal 'global (kbd "<leader>wh") 'split-window-below)
@@ -732,8 +739,6 @@
   (evil-define-key 'normal 'global (kbd "<leader>wr") 'winner-redo)
   (evil-define-key 'normal 'global (kbd "<leader>sr") 'anzu-query-replace-regexp)
   (evil-define-key 'normal 'global (kbd "<leader>bb") 'consult-project-buffer)
-  (evil-define-key 'normal 'global (kbd "<leader>bk") 'kill-this-buffer)
-  (evil-define-key 'normal 'global (kbd "<leader>bd") 'kill-this-buffer)
   (evil-define-key 'normal 'global (kbd "<leader>pp") 'projectile-switch-project)
   (evil-define-key 'normal 'global (kbd "<leader>pf") 'project-find-file)
   (evil-define-key 'normal 'global (kbd "<leader>SPC") 'project-find-file)
@@ -819,6 +824,11 @@
 
   ;; Enable evil mode
   (evil-mode 1))
+
+(use-package evil-surround
+  :ensure t
+  :config
+  (global-evil-surround-mode 1))
 
 
 ;; EVIL COLLECTION
