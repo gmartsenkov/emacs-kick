@@ -652,7 +652,9 @@
 ;; extend the powerful capabilities that Magit offers in Emacs.
 (use-package magit
   :ensure t
-  :defer t)
+  :defer t
+  :config
+  (add-hook 'git-commit-mode-hook 'evil-insert-state))
 
 
 ;;; XCLIP
