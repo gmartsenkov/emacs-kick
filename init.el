@@ -168,6 +168,26 @@
 ;; will help us enable the desired features and improve our workflow.
 
 
+;;; Functions
+(defun me/run-command (cmd)
+  (let ((default-directory (car (last (project-current)))))
+    (compile cmd)))
+
+(defun me/proj-relative-buf-name ()
+  (rename-buffer
+   (file-relative-name buffer-file-name (car (last (project-current))))))
+
+(add-hook 'find-file-hook #'me/proj-relative-buf-name)
+;; (add-hook 'projectile-find-file-hook #'me/proj-relative-buf-name)
+
+(defun mu-magit-kill-buffers ()
+   "Restore window configuration and kill all Magit buffers."
+    (interactive)
+    (let ((buffers (magit-mode-get-buffers)))
+      (magit-restore-window-configuration)
+      (mapc #'bury-buffer buffers)))
+
+
 ;;; EMACS
 ;;  This is biggest one. Keep going, plugins (oops, I mean packages) will be shorter :)
 (use-package emacs
@@ -196,6 +216,22 @@
   (truncate-lines t)                              ;; Enable line truncation to avoid wrapping long lines.
   (use-dialog-box nil)                            ;; Disable dialog boxes in favor of minibuffer prompts.
   (use-short-answers t)                           ;; Use short answers in prompts for quicker responses (y instead of yes)
+  (global-visual-line-mode t)
+  (electric-pair-mode t)
+  (compilation-scroll-output t)
+  (compilation-always-kill t)
+  (ruby-indent-level 2)
+  (ruby-insert-encoding-magic-comment nil)
+  (ruby-method-call-indent nil)
+  (ruby-after-operator-indent nil)
+  (ruby-parenless-call-arguments-indent nil)
+  (ruby-method-params-indent 0)
+  (ruby-block-indent nil)
+  (ruby-align-chained-calls nil)
+  (ruby-deep-indent-paren nil)
+  (compilation-scroll-output t)
+  (scroll-conservatively most-positive-fixnum)
+  (scroll-margin 0)
   (warning-minimum-level :emergency)              ;; Set the minimum level of warnings to display.
 
   :hook                                           ;; Add hooks to enable specific features in certain modes.
@@ -262,49 +298,23 @@
                   (number-to-string (length package-activated-list))))))))
   
 
-;;; WINDOW
-;; This section configures window management in Emacs, enhancing the way buffers 
-;; are displayed for a more efficient workflow. The `window' use-package helps 
-;; streamline how various buffers are shown, especially those related to help, 
-;; diagnostics, and completion.
-;;
-;; Note: I have left some commented-out code below that may facilitate your 
-;; Emacs journey later on. These configurations can be useful for displaying 
-;; other types of buffers in side windows, allowing for a more organized workspace.
-(use-package window
-  :ensure nil       ;; This is built-in, no need to fetch it.
-  :custom
-  (display-buffer-alist
-   '(
-	 ;; ("\\*.*e?shell\\*"
-     ;;  (display-buffer-in-side-window)
-     ;;  (window-height . 0.25)
-     ;;  (side . bottom)
-     ;;  (slot . -1))
-	 
-     ("\\*\\(Backtrace\\|Warnings\\|Compile-Log\\|[Hh]elp\\|Messages\\|Bookmark List\\|Ibuffer\\|Occur\\|eldoc.*\\)\\*"
-      (display-buffer-in-side-window)
-      (window-height . 0.25)
-      (side . bottom)
-      (slot . 0))
+;;; Compilation mode
+(require 'ansi-color)
+(defun my/ansi-colorize-buffer ()
+  (let ((buffer-read-only nil))
+    (ansi-color-apply-on-region (point-min) (point-max))))
 
-     ;; Example configuration for the LSP help buffer,
-     ;; keeps it always on bottom using 25% of the available space:
-     ("\\*\\(lsp-help\\)\\*"
-      (display-buffer-in-side-window)
-      (window-height . 0.25)
-      (side . bottom)
-      (slot . 0))
-     
-     ;; Configuration for displaying various diagnostic buffers on
-     ;; bottom 25%:
-     ("\\*\\(Flymake diagnostics\\|xref\\|ivy\\|Swiper\\|Completions\\)"
-      (display-buffer-in-side-window)
-      (window-height . 0.25)
-      (side . bottom)
-      (slot . 1))
-   )))
+(add-hook 'compilation-filter-hook 'my/ansi-colorize-buffer)
 
+;;; Miscellaneous
+(use-package balanced-windows
+  :ensure t
+  :config
+  (balanced-windows-mode))
+
+(use-package ws-butler
+  :ensure t
+  :hook prog-mode slim-mode)
 
 ;;; DIRED
 ;; In Emacs, the `dired' package provides a powerful and built-in file manager 
@@ -333,98 +343,6 @@
     (let ((gls (executable-find "gls")))                     ;; Use GNU ls on macOS if available.
       (when gls
         (setq insert-directory-program gls)))))
-
-
-;;; ERC
-;; In this section, we introduce ERC (Emacs Relay Chat), a built-in IRC client 
-;; that allows you to engage in real-time chat directly within Emacs. While 
-;; we're aiming to maintain functionality similar to Neovim, it's important to 
-;; recognize that Emacs is often viewed as more than just a text editor. Many 
-;; users leverage Emacs for a variety of tasks beyond editing text: from watching 
-;; videos and listening to music, to managing emails and even serving as a window 
-;; manager in Xorg, freeing themselves from traditional desktop environments. 
-;;
-;; While this kickstarter focuses on essential configurations, I wanted to present 
-;; ERC as a glimpse into Emacs's versatility. With ERC, you can seamlessly connect 
-;; to IRC channels and interact with communities without leaving your editor.
-(use-package erc
-  :defer t ;; Load ERC when needed rather than at startup. (Load it with `M-x erc RET')
-  :custom
-  (erc-join-buffer 'window)                                        ;; Open a new window for joining channels.
-  (erc-hide-list '("JOIN" "PART" "QUIT"))                          ;; Hide messages for joins, parts, and quits to reduce clutter.
-  (erc-timestamp-format "[%H:%M]")                                 ;; Format for timestamps in messages.
-  (erc-autojoin-channels-alist '((".*\\.libera\\.chat" "#emacs"))));; Automatically join the #emacs channel on Libera.Chat.
-
-
-;;; ISEARCH
-;; In this configuration, we're setting up isearch, Emacs's incremental search feature. 
-;; Since we're utilizing Vim bindings, keep in mind that classic Vim search commands 
-;; (like `/' and `?') are not bound in the same way. Instead, you'll need to use 
-;; the standard Emacs shortcuts: 
-;; - `C-s' to initiate a forward search
-;; - `C-r' to initiate a backward search
-;; The following settings enhance the isearch experience:
-(use-package isearch
-  :ensure nil                                  ;; This is built-in, no need to fetch it.
-  :config
-  (setq isearch-lazy-count t)                  ;; Enable lazy counting to show current match information.
-  (setq lazy-count-prefix-format "(%s/%s) ")   ;; Format for displaying current match count.
-  (setq lazy-count-suffix-format nil)          ;; Disable suffix formatting for match count.
-  (setq search-whitespace-regexp ".*?")        ;; Allow searching across whitespace.
-  :bind (("C-s" . isearch-forward)             ;; Bind C-s to forward isearch.
-         ("C-r" . isearch-backward)))          ;; Bind C-r to backward isearch.
-
-
-;;; VC
-;; The VC (Version Control) package is included here for awareness and completeness.
-;; While its support for Git is limited and generally considered subpar, it is good to know 
-;; that it exists and can be used for other version control systems like Mercurial, 
-;; Subversion, and Bazaar.
-;; Magit, which is often regarded as the "father" of Neogit, will be configured later 
-;; for an enhanced Git experience.
-;; The keybindings below serve as a reminder of some common VC commands.
-;; But don't worry, you can always use `M-x command' :)
-(use-package vc
-  :ensure nil                        ;; This is built-in, no need to fetch it.
-  :defer t
-  :bind
-  (("C-x v d" . vc-dir)              ;; Open VC directory for version control status.
-   ("C-x v =" . vc-diff)             ;; Show differences for the current file.
-   ("C-x v D" . vc-root-diff)        ;; Show differences for the entire repository.
-   ("C-x v v" . vc-next-action))     ;; Perform the next version control action.
-  :config
-  ;; Better colors for <leader> g b  (blame file) 
-  (setq vc-annotate-color-map
-        '((20 . "#f5e0dc")
-          (40 . "#f2cdcd")
-          (60 . "#f5c2e7")
-          (80 . "#cba6f7")
-          (100 . "#f38ba8")
-          (120 . "#eba0ac")
-          (140 . "#fab387")
-          (160 . "#f9e2af")
-          (180 . "#a6e3a1")
-          (200 . "#94e2d5")
-          (220 . "#89dceb")
-          (240 . "#74c7ec")
-          (260 . "#89b4fa")
-          (280 . "#b4befe"))))
-
-
-;;; SMERGE
-;; Smerge is included for resolving merge conflicts in files. It provides a simple interface 
-;; to help you keep changes from either the upper or lower version during a merge.
-;; This package is built-in, so there's no need to fetch it separately.
-;; The keybindings below did not needed to be setted, are here just to show
-;; you how to work with it in case you are curious about it.
-(use-package smerge-mode
-  :ensure nil                                  ;; This is built-in, no need to fetch it.
-  :defer t
-  :bind (:map smerge-mode-map
-              ("C-c ^ u" . smerge-keep-upper)  ;; Keep the changes from the upper version.
-              ("C-c ^ l" . smerge-keep-lower)  ;; Keep the changes from the lower version.
-              ("C-c ^ n" . smerge-next)        ;; Move to the next conflict.
-              ("C-c ^ p" . smerge-previous)))  ;; Move to the previous conflict.
 
 
 ;;; ELDOC
@@ -465,19 +383,6 @@
   :defer t)       ;; Defer loading Org-mode until it's needed.
 
 
-;;; WHICH-KEY
-;; `which-key' is an Emacs package that displays available keybindings in a 
-;; popup window whenever you partially type a key sequence. This is particularly 
-;; useful for discovering commands and shortcuts, making it easier to learn 
-;; Emacs and improve your workflow. It helps users remember key combinations 
-;; and reduces the cognitive load of memorizing every command.
-(use-package which-key
-  :ensure nil     ;; This is built-in, no need to fetch it.
-  :defer t        ;; Defer loading Which-Key until after init.
-  :hook
-  (after-init . which-key-mode)) ;; Enable which-key mode after initialization.
-
-
 ;;; ==================== EXTERNAL PACKAGES ====================
 ;;
 ;; From this point onward, all configurations will be for third-party packages
@@ -503,22 +408,26 @@
   :hook
   (after-init . vertico-mode)           ;; Enable vertico after Emacs has initialized.
   :custom
-  (vertico-count 10)                    ;; Number of candidates to display in the completion list.
+  (vertico-count 15)                    ;; Number of candidates to display in the completion list.
   (vertico-resize nil)                  ;; Disable resizing of the vertico minibuffer.
   (vertico-cycle nil)                   ;; Do not cycle through candidates when reaching the end of the list.
-  :config
-  ;; Customize the display of the current candidate in the completion list.
-  ;; This will prefix the current candidate with “» ” to make it stand out.
-  ;; Reference: https://github.com/minad/vertico/wiki#prefix-current-candidate-with-arrow
-  (advice-add #'vertico--format-candidate :around
-    (lambda (orig cand prefix suffix index _start)
-      (setq cand (funcall orig cand prefix suffix index _start))
-      (concat
-        (if (= vertico--index index)
-          (propertize "» " 'face '(:foreground "#80adf0" :weight bold))
-          "  ")
-        cand))))
+  (completion-styles '(basic partial-completion orderless))
+  :bind (:map vertico-map
+			  ("C-j" . vertico-next)
+			  ("C-k" . vertico-previous)
+			  ("C-f" . vertico-exit)
+			  :map minibuffer-local-map
+			  ("M-h" . backward-kill-word)))
 
+(use-package vertico-directory
+  :ensure nil
+  :after vertico
+  :bind (:map vertico-map
+              ("RET" . vertico-directory-enter)
+              ("DEL" . vertico-directory-delete-char)
+              ("M-DEL" . vertico-directory-delete-word))
+  ;; Tidy shadowed file names
+  :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
 
 ;;; ORDERLESS
 ;; Orderless enhances completion in Emacs by allowing flexible pattern matching. 
@@ -531,7 +440,6 @@
   :after vertico                              ;; Ensure Vertico is loaded before Orderless.
   :init
   (setq completion-styles '(orderless basic)  ;; Set the completion styles.
-        completion-category-defaults nil      ;; Clear default category settings.
         completion-category-overrides '((file (styles partial-completion))))) ;; Customize file completion styles.
 
 
@@ -554,6 +462,8 @@
 (use-package consult
   :ensure t
   :defer t
+  :custom
+  (consult-preview-key nil)
   :init
   ;; Enhance register preview with thin lines and no mode line.
   (advice-add #'register-preview :override #'consult-register-window)
@@ -561,26 +471,6 @@
   ;; Use Consult for xref locations with a preview feature.
   (setq xref-show-xrefs-function #'consult-xref
         xref-show-definitions-function #'consult-xref))
-
-
-;;; EMBARK
-;; Embark provides a powerful contextual action menu for Emacs, allowing 
-;; you to perform various operations on completion candidates and other items. 
-;; It extends the capabilities of completion frameworks by offering direct 
-;; actions on the candidates.
-;; Just `<leader> .' over any text, explore it :)
-(use-package embark
-  :ensure t
-  :defer t)
-
-
-;;; EMBARK-CONSULT
-;; Embark-Consult provides a bridge between Embark and Consult, ensuring 
-;; that Consult commands, like previews, are available when using Embark.
-(use-package embark-consult
-  :ensure t
-  :hook
-  (embark-collect-mode . consult-preview-at-point-mode)) ;; Enable preview in Embark collect mode.
 
 
 ;;; TREESITTER-AUTO
@@ -611,6 +501,44 @@
   :init (setq markdown-command "multimarkdown")) ;; Set the Markdown processing command.
 
 
+;;; SNIPPETS
+(use-package yasnippet
+  :ensure t
+  :defer t
+  :init (yas-global-mode 1))
+
+;;; POPPER
+(use-package popper
+  :ensure t
+  :bind (("C-`"   . popper-toggle)
+         ("M-`"   . popper-cycle)
+         ("C-M-`" . popper-toggle-type))
+  :custom
+  (popper-reference-buffers
+        '("\\*Async Shell Command\\*"
+          "*rspec-compilation*"
+          "*mix test*"
+          "*RuboCop"
+          "*cider-repl"
+          "*cider-error*"
+          "*cider-test-report"
+          "*Help*"
+          "*grep"
+          "*grep*"
+          "*xref*"
+          "*rg*"
+          "*compilation*"
+          "\\*Bundler\\*"))
+  (popper-window-height (lambda (win)
+                               (->
+                                window-total-height
+                                (/ 2.5)
+                                (floor))))
+  (popper-display-function 'popper-display-popup-at-bottom)
+  :init
+  (popper-mode +1)
+  (popper-echo-mode +1))
+
 ;;; COMPANY
 ;; Company Mode provides a text completion framework for Emacs. 
 ;; It enhances the editing experience by offering context-aware 
@@ -618,13 +546,13 @@
 ;; Company Mode is highly customizable and can be integrated with 
 ;; various modes and languages.
 (use-package company
-  :defer t 
   :ensure t
   :custom
   (company-tooltip-align-annotations t)      ;; Align annotations with completions.
   (company-minimum-prefix-length 1)          ;; Trigger completion after typing 1 character
   (company-idle-delay 0.2)                   ;; Delay before showing completion (adjust as needed)
   (company-tooltip-maximum-width 50) 
+  (company-backends '((company-yasnippet :separate company-capf company-dabbrev)))
   :config
 
   ;; While using C-p C-n to select a completion candidate
@@ -638,69 +566,23 @@
   (define-key company-active-map [ret] 'company-complete-selection)
   (define-key company-active-map (kbd "RET") 'company-complete-selection)
   :hook
-  (after-init . global-company-mode)) ;; Enable Company Mode globally after initialization.
+  (prog-mode . company-mode)) ;; Enable Company Mode globally after initialization.
 
 
-;;; LSP
-;; Emacs comes with an integrated LSP client called `eglot', which offers basic LSP functionality. 
-;; However, `eglot' has limitations, such as not supporting multiple language servers 
-;; simultaneously within the same buffer (e.g., handling both TypeScript, Tailwind and ESLint
-;; LSPs together in a React project). For this reason, the more mature and capable 
-;; `lsp-mode' is included as a third-party package, providing advanced IDE-like features 
-;; and better support for multiple language servers and configurations.
-(use-package lsp-mode
+;;; Eglot
+(use-package eglot
+  :ensure nil
+  :hook
+  (ruby-ts-mode . eglot-ensure)
+  (ruby-mode . eglot-ensure)
+  (elixir-ts-mode . eglot-ensure)
+  :init
+  (setq-default eglot-stay-out-of '(company)))
+
+(use-package eglot-booster
+  :after eglot
   :ensure t
-  :defer t
-  :hook (;; Replace XXX-mode with concrete major mode (e.g. python-mode)
-         (bash-ts-mode . lsp)                           ;; Enable LSP for Bash
-         (typescript-ts-mode . lsp)                     ;; Enable LSP for TypeScript
-         (tsx-ts-mode . lsp)                            ;; Enable LSP for TSX
-         (js-mode . lsp)                                ;; Enable LSP for JavaScript
-         (js-ts-mode . lsp)                             ;; Enable LSP for JavaScript (TS mode)
-         (lsp-mode . lsp-enable-which-key-integration)) ;; Integrate with Which Key
-  :commands lsp
-  :custom
-  (lsp-keymap-prefix "C-c l")                           ;; Set the prefix for LSP commands.
-  (lsp-inlay-hint-enable t)                             ;; Enable inlay hints.
-  (lsp-completion-provider :none)                       ;; Disable the default completion provider.
-  (lsp-session-file (locate-user-emacs-file ".lsp-session")) ;; Specify session file location.
-  (lsp-log-io nil)                                      ;; Disable IO logging for speed.
-  (lsp-idle-delay 0)                                    ;; Set the delay for LSP to 0 (debouncing).
-  (lsp-keep-workspace-alive nil)                        ;; Disable keeping the workspace alive.
-  ;; Core settings
-  (lsp-enable-xref t)                                   ;; Enable cross-references.
-  (lsp-auto-configure t)                                ;; Automatically configure LSP.
-  (lsp-enable-links nil)                                ;; Disable links.
-  (lsp-eldoc-enable-hover t)                            ;; Enable ElDoc hover.
-  (lsp-enable-file-watchers nil)                        ;; Disable file watchers.
-  (lsp-enable-folding nil)                              ;; Disable folding.
-  (lsp-enable-imenu t)                                  ;; Enable Imenu support.
-  (lsp-enable-indentation nil)                          ;; Disable indentation.
-  (lsp-enable-on-type-formatting nil)                   ;; Disable on-type formatting.
-  (lsp-enable-suggest-server-download t)                ;; Enable server download suggestion.
-  (lsp-enable-symbol-highlighting t)                    ;; Enable symbol highlighting.
-  (lsp-enable-text-document-color nil)                  ;; Disable text document color.
-  ;; Modeline settings
-  (lsp-modeline-code-actions-enable nil)                ;; Keep modeline clean.
-  (lsp-modeline-diagnostics-enable nil)                 ;; Use `flymake' instead.
-  (lsp-modeline-workspace-status-enable t)              ;; Display "LSP" in the modeline when enabled.
-  (lsp-signature-doc-lines 1)                           ;; Limit echo area to one line.
-  (lsp-eldoc-render-all nil)                              ;; Render all ElDoc messages.
-  ;; Completion settings
-  (lsp-completion-enable t)                             ;; Enable completion.
-  (lsp-completion-enable-additional-text-edit t)        ;; Enable additional text edits for completions.
-  (lsp-enable-snippet nil)                              ;; Disable snippets
-  (lsp-completion-show-kind t)                          ;; Show kind in completions.
-  ;; Lens settings
-  (lsp-lens-enable t)                                   ;; Enable lens support.
-  ;; Headerline settings
-  (lsp-headerline-breadcrumb-enable-symbol-numbers t)   ;; Enable symbol numbers in the headerline.
-  (lsp-headerline-arrow "▶")                            ;; Set arrow for headerline.
-  (lsp-headerline-breadcrumb-enable-diagnostics nil)    ;; Disable diagnostics in headerline.
-  (lsp-headerline-breadcrumb-icons-enable nil)          ;; Disable icons in breadcrumb.
-  ;; Semantic settings
-  (lsp-semantic-tokens-enable nil))                     ;; Disable semantic tokens.
-
+  :config (eglot-booster-mode))
 
 ;;; LSP Additional Servers
 ;; You can extend `lsp-mode' by integrating additional language servers for specific 
@@ -793,39 +675,6 @@
   :config
   (setq indent-guide-char "│"))    ;; Set the character used for the indent guide.
 
-
-;;; ADD-NODE-MODULES-PATH
-;; The `add-node-modules-path' package ensures that Emacs uses the local 
-;; `node_modules/.bin' for a project rather than globally installed binaries. 
-;; This is essential in JavaScript/TypeScript projects where different versions 
-;; of tools like `eslint' and `typescript-language-server' might be needed 
-;; per project.
-;;
-;; This setup helps prevent conflicts between global and local versions of 
-;; Node.js tools and ensures consistency across different environments.
-;;
-;; Example in the wild: This is an example of a real-world issue often faced 
-;; by developers using modern tech stacks. When working on multiple projects 
-;; with different dependencies, Emacs must use the correct local versions 
-;; instead of relying on globally installed packages. This configuration 
-;; ensures that the environment is accurate and project-specific tools are 
-;; properly utilized.
-(use-package add-node-modules-path
-  :ensure t
-  :defer t
-  :custom
-  ;; Makes sure you are using the local bin for your
-  ;; node project. Local eslint, typescript server...
-  (eval-after-load 'typescript-ts-mode
-	'(add-hook 'typescript-ts-mode-hook #'add-node-modules-path))
-  (eval-after-load 'tsx-ts-mode
-	'(add-hook 'tsx-ts-mode-hook #'add-node-modules-path))
-  (eval-after-load 'typescriptreact-mode
-	'(add-hook 'typescriptreact-mode-hook #'add-node-modules-path))
-  (eval-after-load 'js-mode
-	'(add-hook 'js-mode-hook #'add-node-modules-path)))
-
-
 ;; EVIL
 ;; The `evil' package provides Vim emulation within Emacs, allowing
 ;; users to edit text in a modal way, similar to how Vim
@@ -840,124 +689,120 @@
   (setq evil-want-integration t)      ;; Integrate `evil' with other Emacs features (optional as it's true by default).
   (setq evil-want-keybinding nil)     ;; Disable default keybinding to set custom ones.
   :config
-  (evil-set-undo-system 'undo-tree)   ;; Uses the undo-tree package as the default undo system
-
-  ;; Set the leader key to space for easier access to custom commands. (setq evil-want-leader t)
+  (setq-default evil-symbol-word-search t)
+  (defalias #'forward-evil-word #'forward-evil-symbol)
+  ;; Set the leader key to space for easier access to custom commands. (setq evil-want-leader t)  
   (setq evil-leader/in-all-states t)  ;; Make the leader key available in all states.
   (setq evil-want-fine-undo t)        ;; Evil uses finer grain undoing steps
 
   ;; Define the leader key as Space
   (evil-set-leader 'normal (kbd "SPC")) 
   (evil-set-leader 'visual (kbd "SPC")) 
-
-  ;; Scrolls with C-d, C-u 
-  (evil-define-key 'normal 'global (kbd "C-d") 'scroll-up)   ;; Scroll down in normal mode.
-  (evil-define-key 'normal 'global (kbd "C-u") 'scroll-down) ;; Scroll up in normal mode.
   
-  ;; Keybindings for searching and finding files.
-  (evil-define-key 'normal 'global (kbd "<leader> s f") 'consult-find)
-  (evil-define-key 'normal 'global (kbd "<leader> s g") 'consult-grep)
-  (evil-define-key 'normal 'global (kbd "<leader> s G") 'consult-git-grep)
-  (evil-define-key 'normal 'global (kbd "<leader> s r") 'consult-ripgrep)
-  (evil-define-key 'normal 'global (kbd "<leader> s h") 'consult-info)
-  (evil-define-key 'normal 'global (kbd "<leader> /") 'consult-line)
-
-  ;; Flymake navigation
-  (evil-define-key 'normal 'global (kbd "<leader> x x") 'consult-flymake);; Gives you something like `trouble.nvim'
-  (evil-define-key 'normal 'global (kbd "] d") 'flymake-goto-next-error) ;; Go to next Flymake error
-  (evil-define-key 'normal 'global (kbd "[ d") 'flymake-goto-prev-error) ;; Go to previous Flymake error
-
-  ;; Dired commands for file management
-  (evil-define-key 'normal 'global (kbd "<leader> x d") 'dired)
-  (evil-define-key 'normal 'global (kbd "<leader> x j") 'dired-jump)
-  (evil-define-key 'normal 'global (kbd "<leader> x f") 'find-file)
-
-  ;; Diff-HL navigation for version control
-  (evil-define-key 'normal 'global (kbd "] c") 'diff-hl-next-hunk) ;; Next diff hunk
-  (evil-define-key 'normal 'global (kbd "[ c") 'diff-hl-previous-hunk) ;; Previous diff hunk
-
-  ;; NeoTree command for file exploration
-  (evil-define-key 'normal 'global (kbd "<leader> e e") 'neotree-toggle)
-
-  ;; Magit keybindings for Git integration
-  (evil-define-key 'normal 'global (kbd "<leader> g g") 'magit-status)      ;; Open Magit status
-  (evil-define-key 'normal 'global (kbd "<leader> g l") 'magit-log-current) ;; Show current log
-  (evil-define-key 'normal 'global (kbd "<leader> g d") 'magit-diff-buffer-file) ;; Show diff for the current file
-  (evil-define-key 'normal 'global (kbd "<leader> g D") 'diff-hl-show-hunk) ;; Show diff for a hunk
-  (evil-define-key 'normal 'global (kbd "<leader> g b") 'vc-annotate)       ;; Annotate buffer with version control info
-
-  ;; Buffer management keybindings
-  (evil-define-key 'normal 'global (kbd "] b") 'switch-to-next-buffer) ;; Switch to next buffer
-  (evil-define-key 'normal 'global (kbd "[ b") 'switch-to-prev-buffer) ;; Switch to previous buffer
-  (evil-define-key 'normal 'global (kbd "<leader> b i") 'consult-buffer) ;; Open consult buffer list
-  (evil-define-key 'normal 'global (kbd "<leader> b b") 'ibuffer) ;; Open Ibuffer
-  (evil-define-key 'normal 'global (kbd "<leader> b d") 'kill-current-buffer) ;; Kill current buffer
-  (evil-define-key 'normal 'global (kbd "<leader> b k") 'kill-current-buffer) ;; Kill current buffer
-  (evil-define-key 'normal 'global (kbd "<leader> b x") 'kill-current-buffer) ;; Kill current buffer
-  (evil-define-key 'normal 'global (kbd "<leader> b s") 'save-buffer) ;; Save buffer
-  (evil-define-key 'normal 'global (kbd "<leader> b l") 'consult-buffer) ;; Consult buffer
-  (evil-define-key 'normal 'global (kbd "<leader>SPC") 'consult-buffer) ;; Consult buffer
-
-  ;; Project management keybindings
-  (evil-define-key 'normal 'global (kbd "<leader> p b") 'consult-project-buffer) ;; Consult project buffer
-  (evil-define-key 'normal 'global (kbd "<leader> p p") 'project-switch-project) ;; Switch project
-  (evil-define-key 'normal 'global (kbd "<leader> p f") 'project-find-file) ;; Find file in project
-  (evil-define-key 'normal 'global (kbd "<leader> p g") 'project-find-regexp) ;; Find regexp in project
-  (evil-define-key 'normal 'global (kbd "<leader> p k") 'project-kill-buffers) ;; Kill project buffers
-  (evil-define-key 'normal 'global (kbd "<leader> p D") 'project-dired) ;; Dired for project
-
-  ;; Yank from kill ring
-  (evil-define-key 'normal 'global (kbd "P") 'consult-yank-from-kill-ring)
-  (evil-define-key 'normal 'global (kbd "<leader> P") 'consult-yank-from-kill-ring)
-
-  ;; Embark actions for contextual commands
-  (evil-define-key 'normal 'global (kbd "<leader> .") 'embark-act)
-
-  ;; Undo tree visualization
-  (evil-define-key 'normal 'global (kbd "<leader> u") 'undo-tree-visualize)
-
-  ;; Help keybindings
-  (evil-define-key 'normal 'global (kbd "<leader> h m") 'describe-mode) ;; Describe current mode
-  (evil-define-key 'normal 'global (kbd "<leader> h f") 'describe-function) ;; Describe function
-  (evil-define-key 'normal 'global (kbd "<leader> h v") 'describe-variable) ;; Describe variable
-  (evil-define-key 'normal 'global (kbd "<leader> h k") 'describe-key) ;; Describe key
-
-  ;; Tab navigation
-  (evil-define-key 'normal 'global (kbd "] t") 'tab-next) ;; Go to next tab
-  (evil-define-key 'normal 'global (kbd "[ t") 'tab-previous) ;; Go to previous tab
-
-
-  ;; Custom example. Formatting with prettier tool.
-  (evil-define-key 'normal 'global (kbd "<leader> m p") 
-    (lambda ()
-      (interactive)
-      (shell-command (concat "prettier --write " (shell-quote-argument (buffer-file-name))))
-      (revert-buffer t t t)))
-
-  ;; LSP commands keybindings
-  (evil-define-key 'normal lsp-mode-map
-    ;; (kbd "gd") 'lsp-find-definition                ;; Emacs already provides a better gd
-    ;; (kbd "gr") 'lsp-find-references                ;; Emacs already provides a better gr
-    (kbd "<leader> c a") 'lsp-execute-code-action     ;; Execute code actions
-    (kbd "<leader> r n") 'lsp-rename                  ;; Rename symbol
-    (kbd "gI") 'lsp-find-implementation               ;; Find implementation
-    (kbd "<leader> l f") 'lsp-format-buffer)          ;; Format buffer via lsp
-
-
-  (defun ek/lsp-describe-and-jump ()
-	"Show hover documentation and jump to *lsp-help* buffer."
-	(interactive)
-	(lsp-describe-thing-at-point)
-	(let ((help-buffer "*lsp-help*"))
-      (when (get-buffer help-buffer)
-		(switch-to-buffer-other-window help-buffer))))
-  ;; Open hover documentation
-  (evil-define-key 'normal 'global (kbd "K") 'ek/lsp-describe-and-jump)
-  ;; Yeah, on terminals, Emacs doesn't support (YET), the use of floating windows,
-  ;; thus, this will open a small buffer bellow your window.
-  ;; This floating frames are called "child frames" and some recent effort is being put
-  ;; into having a translation of those marvelous GUI stuff to terminal. Let's hope
-  ;; we add this to Emacs Kick soom :)
+  (global-set-key (kbd "C-h") 'evil-window-left)
+  (global-set-key (kbd "C-l") 'evil-window-right)
+  (global-set-key (kbd "C-j") 'evil-window-down)
+  (global-set-key (kbd "C-k") 'evil-window-up)
+  (evil-define-key 'normal git-rebase-mode-map (kbd "C-j") 'git-rebase-move-line-down)
+  (evil-define-key 'normal git-rebase-mode-map (kbd "C-k") 'git-rebase-move-line-up)
+  (evil-define-key 'normal rspec-compilation-mode-map (kbd "J") 'compilation-next-error)
+  (evil-define-key 'normal rspec-compilation-mode-map (kbd "K") 'compilation-previous-error)
+  (evil-define-key 'normal compilation-mode-map (kbd "C-k") (lambda () (interactive) (select-window (previous-window))))
+  (evil-define-key 'normal rspec-compilation-mode-map (kbd "C-k") (lambda () (interactive) (select-window (previous-window))))
+  (evil-define-key 'normal 'global (kbd "]d") 'flymake-goto-next-error)
+  (evil-define-key 'normal 'global (kbd "[d") 'flymake-goto--previous-error)
+  (evil-define-key 'normal 'global (kbd "]h") 'diff-hl-next-hunk)
+  (evil-define-key 'normal 'global (kbd "[h") 'diff-hl-previous-hunk)
+  (evil-define-key 'insert 'global (kbd "C-e") 'end-of-line)
+  (evil-define-key 'insert 'global (kbd "C-a") 'beginning-of-line)
+  (evil-define-key 'normal 'global (kbd "<escape>") (lambda ()
+                                                      (interactive)
+                                                      (popper--bury-all)))
+  (evil-define-key 'normal 'global (kbd "gt") 'evil-avy-goto-char-2)
+  (evil-define-key 'normal 'global (kbd "<leader>/") 'counsel-ag)
+  (evil-define-key 'normal 'global (kbd "<leader>hv") 'describe-variable)
+  (evil-define-key 'normal 'global (kbd "<leader>hf") 'describe-function)
+  (evil-define-key 'normal 'global (kbd "<leader>hk") 'describe-key)
+  (evil-define-key 'normal 'global (kbd "<leader>bd") 'kill-this-buffer)
+  (evil-define-key 'normal 'global (kbd "<leader>wu") 'winner-undo)
+  (evil-define-key 'normal 'global (kbd "<leader>wv") 'split-window-right)
+  (evil-define-key 'normal 'global (kbd "<leader>wh") 'split-window-below)
+  (evil-define-key 'normal 'global (kbd "<leader>wd") 'delete-window)
+  (evil-define-key 'normal 'global (kbd "<leader>wq") 'delete-window)
+  (evil-define-key 'normal 'global (kbd "<leader>wr") 'winner-redo)
+  (evil-define-key 'normal 'global (kbd "<leader>sr") 'anzu-query-replace-regexp)
+  (evil-define-key 'normal 'global (kbd "<leader>bb") 'consult-project-buffer)
+  (evil-define-key 'normal 'global (kbd "<leader>bk") 'kill-this-buffer)
+  (evil-define-key 'normal 'global (kbd "<leader>bd") 'kill-this-buffer)
+  (evil-define-key 'normal 'global (kbd "<leader>pp") 'projectile-switch-project)
+  (evil-define-key 'normal 'global (kbd "<leader>pf") 'project-find-file)
+  (evil-define-key 'normal 'global (kbd "<leader>SPC") 'project-find-file)
+  (evil-define-key 'normal 'global (kbd "<leader>ff") 'find-file)
+  (evil-define-key 'normal 'global (kbd "<leader>fd") 'projectile-find-dir)
+  (evil-define-key 'normal 'global (kbd "<leader>ca") 'lsp-execute-code-action)
+  (evil-define-key 'normal 'global (kbd "<leader>cf") 'lsp-format-buffer)
+  (evil-define-key 'normal 'global (kbd "<leader>cc") 'lsp-workspace-restart)
+  (evil-define-key 'normal 'global (kbd "<leader>cd") 'lsp-find-definition)
+  (evil-define-key 'normal 'global (kbd "<leader>cD") 'xref-find-definitions-other-window)
+  (evil-define-key 'normal 'global (kbd "<leader>cr") 'lsp-find-references)
+  (evil-define-key 'normal 'global (kbd "<leader>gg") 'magit)
+  (evil-define-key 'normal 'global (kbd "<leader>gc") 'magit-branch-or-checkout)
+  (evil-define-key 'normal 'global (kbd "<leader>gF") 'magit-pull)
+  (evil-define-key '(normal visual) 'global (kbd "<leader>gl") 'git-link)
+  (evil-define-key 'normal 'global (kbd "<leader>gb") 'magit-blame)
+  (evil-define-key 'normal magit-status-mode-map (kbd "q") 'mu-magit-kill-buffers)
+  (evil-define-key 'normal magit-status-mode-map (kbd "<escape>") 'mu-magit-kill-buffers)
+  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>tt") 'rspec-toggle-spec-and-target)
+  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>tv") 'rspec-verify)
+  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>tl") 'rspec-rerun)
+  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>tf") 'rspec-run-last-failed)
+  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>tc") 'rspec-verify-single)
+  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>ta") 'rspec-verify-all)
+  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>mp") (lambda () (interactive) (me/run-command "bundle exec rubocop")))
+  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>mbi") (lambda () (interactive) (me/run-command "bundle install")))
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>tt") 'rspec-toggle-spec-and-target)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>tv") 'rspec-verify)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>tl") 'rspec-rerun)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>tf") 'rspec-run-last-failed)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>tc") 'rspec-verify-single)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>ta") 'rspec-verify-all)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>mp") (lambda () (interactive) (me/run-command "bundle exec rubocop")))
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>mbi") (lambda () (interactive) (me/run-command "bundle install")))
+  (evil-define-key 'normal rust-mode-map (kbd "<leader>ta") 'rust-test)
+  (evil-define-key 'normal rust-mode-map (kbd "<leader>mr") 'rust-run)
+  (evil-define-key 'normal rust-mode-map (kbd "<leader>mb") 'rust-compile)
+  (evil-define-key 'normal rust-mode-map (kbd "<leader>mf") 'rust-format-buffer)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>md") 'cider-clojuredocs)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>mc") 'cider)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>tt") 'projectile-toggle-between-implementation-and-test)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>ta") 'cider-test-run-project-tests)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>tv") 'cider-test-run-ns-tests)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>tc") 'cider-test-run-test)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>tn") 'cider-test-run-ns-tests)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>eb") 'cider-eval-buffer)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>er") 'cider-eval-defun-at-point)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>ee") 'cider-eval-last-sexp)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>rr") 'cider-ns-refresh)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>rn") 'cider-repl-set-ns)
+  (evil-define-key 'normal clojure-mode-map (kbd "<leader>rb") 'cider-switch-to-repl-buffer)
+  (evil-define-key 'normal emacs-lisp-mode-map (kbd "<leader>eb") 'eval-buffer)
+  (evil-define-key 'normal emacs-lisp-mode-map (kbd "<leader>ee") 'eval-last-sexp)
+  (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>fm") 'eglot-format)
+  (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>ta") 'elixir-test-project)
+  (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>tv") 'elixir-run-test)
+  (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>tc") 'mix-test-current-test)
+  (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>tt") 'gotospec)
+  (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>mp") (lambda () (interactive) (me/run-command "mix credo")))
+  (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>mf") (lambda () (interactive) (me/run-command "mix format")))
+  (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>md") (lambda () (interactive) (me/run-command "mix deps.get")))
+  (evil-define-key 'normal go-mode-map (kbd "<leader>tt") 'projectile-toggle-between-implementation-and-test)
+  (evil-define-key 'normal go-mode-map (kbd "<leader>tv") 'go-test-current-file)
+  (evil-define-key 'normal go-mode-map (kbd "<leader>tc") 'go-test-current-test)
+  (evil-define-key 'normal go-mode-map (kbd "<leader>ta") 'go-test-current-project)
+  (evil-define-key 'normal crystal-mode-map (kbd "<leader>tt") 'projectile-toggle-between-implementation-and-test)
+  (evil-define-key 'normal crystal-mode-map (kbd "<leader>mp") (lambda () (interactive) (me/run-command "./bin/ameba")))
+  (evil-define-key 'normal crystal-mode-map (kbd "<leader>mf") (lambda () (interactive) (me/run-command "crystal tool format")))
+  (evil-define-key 'normal crystal-mode-map (kbd "<leader>ta") (lambda () (interactive) (me/run-command "crystal spec")))
 
   ;; Commenting functionality for single and multiple lines
   (evil-define-key 'normal 'global (kbd "gcc")
@@ -992,32 +837,6 @@
   (evil-collection-init))
 
 
-;; UNDO TREE
-;; The `undo-tree' package provides an advanced and visual way to
-;; manage undo history. It allows you to navigate and visualize your
-;; undo history as a tree structure, making it easier to manage
-;; changes in your buffers.
-(use-package undo-tree
-  :defer t
-  :ensure t
-  :hook
-  (after-init . global-undo-tree-mode)
-  :init
-  (setq undo-tree-visualizer-timestamps t
-        undo-tree-visualizer-diff t
-        ;; Increase undo limits to avoid losing history due to Emacs' garbage collection.
-        ;; These values can be adjusted based on your needs.
-        ;; 10X bump of the undo limits to avoid issues with premature
-        ;; Emacs GC which truncates the undo history very aggressively.
-        undo-limit 800000                     ;; Limit for undo entries.
-        undo-strong-limit 12000000            ;; Strong limit for undo entries.
-        undo-outer-limit 120000000)           ;; Outer limit for undo entries.
-  :config
-  ;; Set the directory where `undo-tree' will save its history files.
-  ;; This keeps undo history across sessions, stored in a cache directory.
-  (setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/.cache/undo"))))
-
-
 ;;; RAINBOW DELIMITERS
 ;; The `rainbow-delimiters' package provides colorful parentheses, brackets, and braces
 ;; to enhance readability in programming modes. Each level of nested delimiter is assigned
@@ -1029,13 +848,21 @@
   (prog-mode . rainbow-delimiters-mode))
 
 
-;;; DOTENV
-;; A simple major mode to provide .env files with color highlighting
-(use-package dotenv-mode
-  :defer t
-  :ensure t
-  :config)
+;;; RUBY
+(use-package inf-ruby :ensure t
+  :config
+  (inf-ruby-enable-auto-breakpoint))
 
+(use-package ruby-end
+  :defer t
+  :ensure t)
+
+(use-package rspec-mode
+  :ensure t
+  :defer t
+  :commands (rspec-toggle-spec-and-target rspec-verify rspec-rerun rspec-run-last-failed rspec-verify-single rspec-verify-all)
+  :custom
+  (rspec-primary-source-dirs '("app" "apps" "lib")))
 
 ;;; PULSAR
 ;; The `pulsar' package enhances the user experience in Emacs by providing
@@ -1070,6 +897,7 @@
 ;; The `doom-modeline' package provides a sleek, modern mode-line that is visually appealing
 ;; and functional. It integrates well with various Emacs features, enhancing the overall user
 ;; experience by displaying relevant information in a compact format.
+
 (use-package doom-modeline
   :ensure t
   :defer t
@@ -1078,6 +906,7 @@
   (doom-modeline-project-detection 'project)           ;; Enable project detection for displaying the project name.
   (doom-modeline-buffer-name t)                        ;; Show the buffer name in the mode line.
   (doom-modeline-vcs-max-length 25)                    ;; Limit the version control system (VCS) branch name length to 25 characters.
+  (doom-modeline-buffer-file-name 'relative-from-project)
   :config
   (if ek-use-nerd-fonts                                ;; Check if nerd fonts are being used.
       (setq doom-modeline-icon t)                      ;; Enable icons in the mode line if nerd fonts are used.
