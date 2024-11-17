@@ -187,6 +187,50 @@
       (magit-restore-window-configuration)
       (mapc #'bury-buffer buffers)))
 
+(defun elixir-run-test ()
+  (interactive
+   (let* ((file-path (buffer-file-name))
+          (default-directory (car (last (project-current))))
+          (file (->> file-path (file-name-split) (last) (nth 0)))
+          (extension (file-name-extension file))
+          (target (if (string= extension "ex") (find-spec) file-path)))
+         (compile (concat "mix test " target)))))
+
+(setq gotospec-config
+      '((ex . ((test-folder . "test")
+               (source-strip-folder . "lib")
+               (strip-file-suffix . "")
+               (test-suffix . "_test.exs")))
+        (exs . ((test-folder . "lib")
+                (source-strip-folder . "test")
+                (strip-file-suffix . "_test")
+                (test-suffix . ".ex")))))
+
+(defun gotospec ()
+  (interactive
+   (find-file (find-spec))))
+
+(defun find-spec ()
+  (let* ((project-root (car (last (project-current))))
+         (file-path (buffer-file-name))
+         (relative-file-path (file-relative-name file-path project-root))
+         (file (->> file-path (file-name-split) (last) (nth 0)))
+         (extension (file-name-extension file))
+         (config (alist-get (intern extension) gotospec-config))
+         (test-folder (file-name-as-directory (alist-get 'test-folder config)))
+         (test-suffix (alist-get 'test-suffix config))
+         (strip-file-suffix (alist-get 'strip-file-suffix config))
+         (source-strip-folder (file-name-as-directory (alist-get 'source-strip-folder config)))
+         (target (concat
+                  project-root
+                  test-folder
+                  (string-remove-prefix
+                   (file-name-as-directory source-strip-folder)
+                   (file-name-directory relative-file-path))
+                  (concat
+                   (string-remove-suffix strip-file-suffix (file-name-sans-extension file))
+                   test-suffix))))
+    target))
 
 ;;; EMACS
 ;;  This is biggest one. Keep going, plugins (oops, I mean packages) will be shorter :)
@@ -211,7 +255,9 @@
   (split-width-threshold 300)                     ;; Prevent automatic window splitting if the window width exceeds 300 pixels.
   (switch-to-buffer-obey-display-actions t)       ;; Make buffer switching respect display actions.
   (tab-always-indent 'complete)                   ;; Make the TAB key complete text instead of just indenting.
-  (tab-width 4)                                   ;; Set the tab width to 4 spaces.
+  (css-indent-offset 2)                           ;; Use 2 spaces indent for css files
+  (js-indent-level 2)                             ;; Use 2 space indent for js files
+  (indent-tabs-mode nil)                          ;; Never insert tabs
   (treesit-font-lock-level 4)                     ;; Use advanced font locking for Treesit mode.
   (truncate-lines t)                              ;; Enable line truncation to avoid wrapping long lines.
   (use-dialog-box nil)                            ;; Disable dialog boxes in favor of minibuffer prompts.
@@ -236,6 +282,7 @@
 
   :hook                                           ;; Add hooks to enable specific features in certain modes.
   (prog-mode . display-line-numbers-mode)         ;; Enable line numbers in programming modes.
+  (markdown-mode . display-line-numbers-mode)
 
   :config
   ;; By default emacs gives you access to a lot of *special* buffers, while navigating with [b and ]b,
@@ -496,8 +543,17 @@
   (treesit-auto-install 'prompt)
   :config
   (treesit-auto-add-to-auto-mode-alist 'all)
+  (add-to-list 'auto-mode-alist '("\\.cr$" . crystal-mode))
+  (add-to-list 'auto-mode-alist '("\\.ex\\'" . elixir-ts-mode))
+  (add-to-list 'auto-mode-alist '("\\.exs\\'" . elixir-ts-mode))
   (global-treesit-auto-mode t))
 
+
+;;; SLIM-MODE
+(use-package slim-mode
+  :ensure t
+  :config
+  (add-to-list 'auto-mode-alist '("\\.emblem$" . slim-mode)))
 
 ;;; MARKDOWN-MODE
 ;; Markdown Mode provides support for editing Markdown files in Emacs,
@@ -577,7 +633,8 @@
   (define-key company-active-map [ret] 'company-complete-selection)
   (define-key company-active-map (kbd "RET") 'company-complete-selection)
   :hook
-  (prog-mode . company-mode)) ;; Enable Company Mode globally after initialization.
+  (prog-mode . company-mode)
+  (markdown-mode . company-mode))
 
 
 ;;; Eglot
@@ -588,7 +645,11 @@
   (ruby-mode . eglot-ensure)
   (elixir-ts-mode . eglot-ensure)
   :init
-  (setq-default eglot-stay-out-of '(company)))
+  (setq-default eglot-stay-out-of '(company))
+  (with-eval-after-load 'eglot
+	(add-to-list 'eglot-server-programs
+				 `((elixir-ts-mode heex-ts-mode elixir-mode) .
+				   ("elixir-ls" "--stdio=true" :initializationOptions (:experimental (:completions (:enable t))))))))
 
 (use-package eglot-booster
   :after eglot
@@ -657,6 +718,8 @@
 (use-package magit
   :ensure t
   :defer t
+  :custom
+  (magit-display-buffer-function 'magit-display-buffer-fullframe-status-v1)
   :config
   (add-hook 'git-commit-mode-hook 'evil-insert-state))
 
@@ -800,7 +863,7 @@
   (evil-define-key 'normal emacs-lisp-mode-map (kbd "<leader>eb") 'eval-buffer)
   (evil-define-key 'normal emacs-lisp-mode-map (kbd "<leader>ee") 'eval-last-sexp)
   (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>fm") 'eglot-format)
-  (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>ta") 'elixir-test-project)
+  (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>ta") '(lambda () (interactive) (me/run-command "mix test")))
   (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>tv") 'elixir-run-test)
   (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>tc") 'mix-test-current-test)
   (evil-define-key 'normal elixir-ts-mode-map (kbd "<leader>tt") 'gotospec)
@@ -816,6 +879,7 @@
   (evil-define-key 'normal crystal-mode-map (kbd "<leader>mf") (lambda () (interactive) (me/run-command "crystal tool format")))
   (evil-define-key 'normal crystal-mode-map (kbd "<leader>mbi") (lambda () (interactive) (me/run-command "shards install")))
   (evil-define-key 'normal crystal-mode-map (kbd "<leader>mbb") (lambda () (interactive) (me/run-command "shards build")))
+  (evil-define-key 'normal crystal-mode-map (kbd "<leader>mp") (lambda () (interactive) (me/run-command "./bin/ameba")))
   (evil-define-key 'normal crystal-mode-map (kbd "<leader>ta") (lambda () (interactive) (me/run-command "crystal spec")))
 
   ;; Commenting functionality for single and multiple lines
@@ -954,7 +1018,15 @@
   :config
   (if ek-use-nerd-fonts                    ;; Check if nerd fonts are being used.
       (setq neo-theme 'nerd-icons)         ;; Set the theme to 'nerd-icons' if nerd fonts are available.
-    (setq neo-theme 'nerd)))               ;; Otherwise, fall back to the 'nerd' theme.
+	(setq neo-theme 'nerd))                ;; Otherwise, fall back to the 'nerd' theme.
+  :init
+  (add-hook 'neo-after-create-hook
+			#'(lambda (_)
+				(with-current-buffer (get-buffer neo-buffer-name)
+				  (setq truncate-lines t)
+				  (setq word-wrap nil)
+				  (make-local-variable 'auto-hscroll-mode)
+				  (setq auto-hscroll-mode nil)))))
 
 
 ;;; NERD ICONS
