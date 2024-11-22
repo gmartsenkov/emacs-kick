@@ -506,6 +506,7 @@
 (use-package projectile
   :ensure t
   :custom
+  (projectile-project-search-path '("~/Development" "~/dotfiles" "~/.emacs.d"))
   (projectile-create-missing-test-files t))
 
 ;;; CONSULT
