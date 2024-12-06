@@ -648,9 +648,11 @@
   :init
   (setq-default eglot-stay-out-of '(company))
   (with-eval-after-load 'eglot
-	(add-to-list 'eglot-server-programs
-				 `((elixir-ts-mode heex-ts-mode elixir-mode) .
-				   ("elixir-ls" "--stdio=true" :initializationOptions (:experimental (:completions (:enable t))))))))
+    (add-to-list 'eglot-server-programs
+                 '(gleam-ts-mode . ("gleam" "lsp")))
+    (add-to-list 'eglot-server-programs
+                 `((elixir-ts-mode heex-ts-mode elixir-mode) .
+                   ("elixir-ls" "--stdio=true" :initializationOptions (:experimental (:completions (:enable t))))))))
 
 (use-package eglot-booster
   :after eglot
@@ -937,6 +939,9 @@
   :ensure t
   :config
   (setenv "CRYSTAL_OPTS" "--link-flags=-Wl,-ld_classic"))
+
+;;; GLEAM
+(use-package gleam-ts-mode :mode (rx ".gleam" eos))
 
 ;;; RUBY
 (use-package inf-ruby :ensure t
