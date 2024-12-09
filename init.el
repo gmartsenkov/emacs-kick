@@ -645,6 +645,7 @@
   (ruby-ts-mode . eglot-ensure)
   (ruby-mode . eglot-ensure)
   (elixir-ts-mode . eglot-ensure)
+  (gleam-ts-mode . eglot-ensure)
   :init
   (setq-default eglot-stay-out-of '(company))
   (with-eval-after-load 'eglot
