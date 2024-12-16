@@ -645,9 +645,10 @@
   (ruby-ts-mode . eglot-ensure)
   (ruby-mode . eglot-ensure)
   (elixir-ts-mode . eglot-ensure)
+  (typescript-ts-mode . eglot-ensure)
   (gleam-ts-mode . eglot-ensure)
   :init
-  (setq-default eglot-stay-out-of '(company))
+  (setq-default eglot-stay-out-of '(company flymake))
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs
                  '(gleam-ts-mode . ("gleam" "lsp")))
