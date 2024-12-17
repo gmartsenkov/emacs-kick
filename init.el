@@ -254,7 +254,7 @@
   (ring-bell-function 'ignore)                    ;; Disable the audible bell.
   (split-width-threshold 300)                     ;; Prevent automatic window splitting if the window width exceeds 300 pixels.
   (switch-to-buffer-obey-display-actions t)       ;; Make buffer switching respect display actions.
-  (tab-always-indent 'complete)                   ;; Make the TAB key complete text instead of just indenting.
+  ;; (tab-always-indent 'complete)                   ;; Make the TAB key complete text instead of just indenting.
   (css-indent-offset 2)                           ;; Use 2 spaces indent for css files
   (js-indent-level 2)                             ;; Use 2 space indent for js files
   (indent-tabs-mode nil)                          ;; Never insert tabs
@@ -547,6 +547,7 @@
   (add-to-list 'auto-mode-alist '("\\.cr$" . crystal-mode))
   (add-to-list 'auto-mode-alist '("\\.ex\\'" . elixir-ts-mode))
   (add-to-list 'auto-mode-alist '("\\.exs\\'" . elixir-ts-mode))
+  (add-to-list 'auto-mode-alist '("\\.gleam\\'" . gleam-ts-mode))
   (global-treesit-auto-mode t))
 
 
@@ -663,6 +664,25 @@
   :after eglot
   :ensure t
   :config (eglot-booster-mode))
+
+;;; FORMATTING
+(use-package ws-butler
+  :ensure t
+  :hook prog-mode slim-mode)
+
+(use-package reformatter
+  :ensure t
+  :hook (clojure-mode . cljstyle-format-on-save-mode)
+  :hook (gleam-ts-mode . gleam-format-on-save-mode)
+  :config
+  (reformatter-define cljstyle-format
+                   :program "cljstyle"
+                   :args '("pipe")
+                   :lighter " CLJ")
+  (reformatter-define gleam-format
+                   :program "gleam"
+                   :args '("format" "--stdin")
+                   :lighter " GLEAM"))
 
 ;;; LSP Additional Servers
 ;; You can extend `lsp-mode' by integrating additional language servers for specific
