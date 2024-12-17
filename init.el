@@ -647,8 +647,11 @@
   (elixir-ts-mode . eglot-ensure)
   (typescript-ts-mode . eglot-ensure)
   (gleam-ts-mode . eglot-ensure)
+  (rust-ts-mode . eglot-ensure)
   :init
   (setq-default eglot-stay-out-of '(company flymake))
+  (setq-default eglot-ignored-server-capabilities '(:inlayHintProvider))
+  (setq-default eglot-inlay-hints-mode nil)
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs
                  '(gleam-ts-mode . ("gleam" "lsp")))
@@ -848,10 +851,11 @@
   (evil-define-key 'normal ruby-mode-map (kbd "<leader>ta") 'rspec-verify-all)
   (evil-define-key 'normal ruby-mode-map (kbd "<leader>mp") (lambda () (interactive) (me/run-command "bundle exec rubocop")))
   (evil-define-key 'normal ruby-mode-map (kbd "<leader>mbi") (lambda () (interactive) (me/run-command "bundle install")))
-  (evil-define-key 'normal rust-mode-map (kbd "<leader>ta") 'rust-test)
-  (evil-define-key 'normal rust-mode-map (kbd "<leader>mr") 'rust-run)
-  (evil-define-key 'normal rust-mode-map (kbd "<leader>mb") 'rust-compile)
-  (evil-define-key 'normal rust-mode-map (kbd "<leader>mf") 'rust-format-buffer)
+  (evil-define-key 'normal rust-ts-mode-map (kbd "<leader>ta") 'rust-test)
+  (evil-define-key 'normal rust-ts-mode-map (kbd "<leader>mr") 'rust-run)
+  (evil-define-key 'normal rust-ts-mode-map (kbd "<leader>mb") 'rust-compile)
+  (evil-define-key 'normal rust-ts-mode-map (kbd "<leader>mf") 'rust-format-buffer)
+  (evil-define-key 'normal typescript-ts-mode-map (kbd "<leader>mb") (lambda () (interactive) (me/run-command "npx tsc")))
   (evil-define-key 'normal clojure-mode-map (kbd "<leader>md") 'cider-clojuredocs)
   (evil-define-key 'normal clojure-mode-map (kbd "<leader>mc") 'cider)
   (evil-define-key 'normal clojure-mode-map (kbd "<leader>tt") 'projectile-toggle-between-implementation-and-test)
@@ -879,6 +883,7 @@
   (evil-define-key 'normal go-mode-map (kbd "<leader>tv") 'go-test-current-file)
   (evil-define-key 'normal go-mode-map (kbd "<leader>tc") 'go-test-current-test)
   (evil-define-key 'normal go-mode-map (kbd "<leader>ta") 'go-test-current-project)
+  (evil-define-key 'normal gleam-ts-mode-map (kbd "<leader>ta") (lambda () (interactive) (me/run-command "gleam test")))
   (evil-define-key 'normal crystal-mode-map (kbd "<leader>tt") 'projectile-toggle-between-implementation-and-test)
   (evil-define-key 'normal crystal-mode-map (kbd "<leader>mp") (lambda () (interactive) (me/run-command "./bin/ameba")))
   (evil-define-key 'normal crystal-mode-map (kbd "<leader>mf") (lambda () (interactive) (me/run-command "crystal tool format")))
@@ -899,6 +904,7 @@
       (interactive)
       (if (use-region-p)
           (comment-or-uncomment-region (region-beginning) (region-end)))))
+
 
   ;; Enable evil mode
   (evil-mode 1))
@@ -944,6 +950,9 @@
 
 ;;; GLEAM
 (use-package gleam-ts-mode :mode (rx ".gleam" eos))
+
+;;; RUST
+(use-package rust-mode :ensure t)
 
 ;;; RUBY
 (use-package inf-ruby :ensure t
