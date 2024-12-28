@@ -278,6 +278,7 @@
   (compilation-scroll-output t)
   (scroll-conservatively most-positive-fixnum)
   (scroll-margin 0)
+  (project-switch-commands 'project-find-file)
   (warning-minimum-level :emergency)              ;; Set the minimum level of warnings to display.
 
   :hook                                           ;; Add hooks to enable specific features in certain modes.
@@ -430,6 +431,12 @@
   :defer t)       ;; Defer loading Org-mode until it's needed.
 
 
+;;; TERMINAL
+
+(use-package eat
+  :ensure t
+  :hook
+  (eshell-mode . eat-eshell-mode))
 ;;; ==================== EXTERNAL PACKAGES ====================
 ;;
 ;; From this point onward, all configurations will be for third-party packages
@@ -595,6 +602,8 @@
           "*grep"
           "*grep*"
           "*xref*"
+          "*eshell*"
+          "-eshell*"
           "*rg*"
           "*compilation*"
           "\\*Bundler\\*"))
@@ -807,6 +816,8 @@
   (global-set-key (kbd "C-l") 'evil-window-right)
   (global-set-key (kbd "C-j") 'evil-window-down)
   (global-set-key (kbd "C-k") 'evil-window-up)
+  (evil-define-key 'normal 'global (kbd "`") 'project-eshell)
+  (evil-define-key 'insert eshell-mode-map (kbd "<escape>") (lambda () (interactive) (popper--bury-all)))
   (evil-define-key 'normal git-rebase-mode-map (kbd "C-j") 'git-rebase-move-line-down)
   (evil-define-key 'normal git-rebase-mode-map (kbd "C-k") 'git-rebase-move-line-up)
   (evil-define-key 'normal rspec-compilation-mode-map (kbd "J") 'compilation-next-error)
@@ -819,9 +830,7 @@
   (evil-define-key 'normal 'global (kbd "[h") 'diff-hl-previous-hunk)
   (evil-define-key 'insert 'global (kbd "C-e") 'end-of-line)
   (evil-define-key 'insert 'global (kbd "C-a") 'beginning-of-line)
-  (evil-define-key 'normal 'global (kbd "<escape>") (lambda ()
-                                                      (interactive)
-                                                      (popper--bury-all)))
+  (evil-define-key 'normal 'global (kbd "<escape>") (lambda () (interactive) (popper--bury-all)))
   (evil-define-key 'normal 'global (kbd "gt") 'evil-avy-goto-char-2)
   (evil-define-key 'normal 'global (kbd "<leader>/") 'counsel-ag)
   (evil-define-key 'normal 'global (kbd "<leader>hv") 'describe-variable)
@@ -836,7 +845,7 @@
   (evil-define-key 'normal 'global (kbd "<leader>wr") 'winner-redo)
   (evil-define-key 'normal 'global (kbd "<leader>sr") 'anzu-query-replace-regexp)
   (evil-define-key 'normal 'global (kbd "<leader>bb") 'consult-project-buffer)
-  (evil-define-key 'normal 'global (kbd "<leader>pp") 'projectile-switch-project)
+  (evil-define-key 'normal 'global (kbd "<leader>pp") 'project-switch-project)
   (evil-define-key 'normal 'global (kbd "<leader>pf") 'project-find-file)
   (evil-define-key 'normal 'global (kbd "<leader>SPC") 'project-find-file)
   (evil-define-key 'normal 'global (kbd "<leader>ff") 'find-file)
