@@ -850,7 +850,7 @@
   (evil-define-key 'normal 'global (kbd "<leader>SPC") 'project-find-file)
   (evil-define-key 'normal 'global (kbd "<leader>ff") 'find-file)
   (evil-define-key 'normal 'global (kbd "<leader>fd") 'projectile-find-dir)
-  (evil-define-key 'normal 'global (kbd "<leader>ca") 'lsp-execute-code-action)
+  (evil-define-key 'normal 'global (kbd "<leader>ca") 'eglot-code-actions)
   (evil-define-key 'normal 'global (kbd "<leader>cf") 'lsp-format-buffer)
   (evil-define-key 'normal 'global (kbd "<leader>cc") 'lsp-workspace-restart)
   (evil-define-key 'normal 'global (kbd "<leader>cd") 'lsp-find-definition)
