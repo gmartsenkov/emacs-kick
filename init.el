@@ -413,7 +413,7 @@
 (use-package flymake
   :ensure nil          ;; This is built-in, no need to fetch it.
   :defer t
-  :hook (prog-mode . flymake-mode)
+  :hook (rust-ts-mode . flymake-mode)
   :custom
   (flymake-margin-indicators-string
    '((error "!»" compilation-error) (warning "»" compilation-warning)
@@ -431,12 +431,6 @@
   :defer t)       ;; Defer loading Org-mode until it's needed.
 
 
-;;; TERMINAL
-
-(use-package eat
-  :ensure t
-  :hook
-  (eshell-mode . eat-eshell-mode))
 ;;; ==================== EXTERNAL PACKAGES ====================
 ;;
 ;; From this point onward, all configurations will be for third-party packages
@@ -670,8 +664,9 @@
                    ("elixir-ls" "--stdio=true" :initializationOptions (:experimental (:completions (:enable t))))))))
 
 (use-package eglot-booster
+  :vc (:url "https://github.com/blahgeek/emacs-lsp-booster"
+            :branch "master")
   :after eglot
-  :ensure t
   :config (eglot-booster-mode))
 
 ;;; FORMATTING
