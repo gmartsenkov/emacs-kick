@@ -820,7 +820,7 @@
   (evil-define-key 'normal compilation-mode-map (kbd "C-k") (lambda () (interactive) (select-window (previous-window))))
   (evil-define-key 'normal rspec-compilation-mode-map (kbd "C-k") (lambda () (interactive) (select-window (previous-window))))
   (evil-define-key 'normal 'global (kbd "]d") 'flymake-goto-next-error)
-  (evil-define-key 'normal 'global (kbd "[d") 'flymake-goto--previous-error)
+  (evil-define-key 'normal 'global (kbd "[d") 'flymake-goto-prev-error)
   (evil-define-key 'normal 'global (kbd "]h") 'diff-hl-next-hunk)
   (evil-define-key 'normal 'global (kbd "[h") 'diff-hl-previous-hunk)
   (evil-define-key 'insert 'global (kbd "C-e") 'end-of-line)
@@ -1043,31 +1043,6 @@
     (setq doom-modeline-icon nil))                     ;; Disable icons if nerd fonts are not being used.
   :hook
   (after-init . doom-modeline-mode))
-
-
-;;; NEOTREE
-;; The `neotree' package provides a file tree explorer for Emacs, allowing easy navigation
-;; through directories and files. It presents a visual representation of the file system
-;; and integrates with version control to show file states.
-(use-package neotree
-  :ensure t
-  :custom
-  (neo-show-hidden-files t)                ;; By default shows hidden files (toggle with H)
-  (neo-theme 'nerd)                        ;; Set the default theme for Neotree to 'nerd' for a visually appealing look.
-  (neo-vc-integration '(face char))        ;; Enable VC integration to display file states with faces (color coding) and characters (icons).
-  :defer t                                 ;; Load the package only when needed to improve startup time.
-  :config
-  (if ek-use-nerd-fonts                    ;; Check if nerd fonts are being used.
-      (setq neo-theme 'nerd-icons)         ;; Set the theme to 'nerd-icons' if nerd fonts are available.
-	(setq neo-theme 'nerd))                ;; Otherwise, fall back to the 'nerd' theme.
-  :init
-  (add-hook 'neo-after-create-hook
-			#'(lambda (_)
-				(with-current-buffer (get-buffer neo-buffer-name)
-				  (setq truncate-lines t)
-				  (setq word-wrap nil)
-				  (make-local-variable 'auto-hscroll-mode)
-				  (setq auto-hscroll-mode nil)))))
 
 
 ;;; NERD ICONS
