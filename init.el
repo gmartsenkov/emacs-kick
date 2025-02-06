@@ -362,7 +362,7 @@
 
 (use-package ws-butler
   :ensure t
-  :hook prog-mode slim-mode)
+  :hook ((prog-mode slim-mode) . ws-butler-mode))
 
 ;;; DIRED
 ;; In Emacs, the `dired' package provides a powerful and built-in file manager
@@ -544,12 +544,12 @@
   :custom
   (treesit-auto-install 'prompt)
   :config
-  (treesit-auto-add-to-auto-mode-alist 'all)
+  ;; (treesit-auto-add-to-auto-mode-alist 'all)
+;; (global-treesit-auto-mode t)
   (add-to-list 'auto-mode-alist '("\\.cr$" . crystal-mode))
   (add-to-list 'auto-mode-alist '("\\.ex\\'" . elixir-ts-mode))
   (add-to-list 'auto-mode-alist '("\\.exs\\'" . elixir-ts-mode))
-  (add-to-list 'auto-mode-alist '("\\.gleam\\'" . gleam-ts-mode))
-  (global-treesit-auto-mode t))
+  (add-to-list 'auto-mode-alist '("\\.gleam\\'" . gleam-ts-mode)))
 
 
 ;;; SLIM-MODE
@@ -653,6 +653,7 @@
   (gleam-ts-mode . eglot-ensure)
   (rust-ts-mode . eglot-ensure)
   :init
+  (setq-default eglot-events-buffer-size 0) ;; Disable logging
   (setq-default eglot-stay-out-of '(company flymake))
   (setq-default eglot-ignored-server-capabilities '(:inlayHintProvider))
   (setq-default eglot-inlay-hints-mode nil)
@@ -667,6 +668,7 @@
   :vc (:url "https://github.com/blahgeek/emacs-lsp-booster"
             :branch "master")
   :after eglot
+  :ensure t
   :config (eglot-booster-mode))
 
 ;;; FORMATTING
@@ -859,14 +861,14 @@
   (evil-define-key 'normal 'global (kbd "<leader>gb") 'magit-blame)
   (evil-define-key 'normal magit-status-mode-map (kbd "q") 'mu-magit-kill-buffers)
   (evil-define-key 'normal magit-status-mode-map (kbd "<escape>") 'mu-magit-kill-buffers)
-  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>tt") 'rspec-toggle-spec-and-target)
-  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>tv") 'rspec-verify)
-  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>tl") 'rspec-rerun)
-  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>tf") 'rspec-run-last-failed)
-  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>tc") 'rspec-verify-single)
-  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>ta") 'rspec-verify-all)
-  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>mp") (lambda () (interactive) (me/run-command "bundle exec rubocop")))
-  (evil-define-key 'normal ruby-ts-mode-map (kbd "<leader>mbi") (lambda () (interactive) (me/run-command "bundle install")))
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>tt") 'rspec-toggle-spec-and-target)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>tv") 'rspec-verify)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>tl") 'rspec-rerun)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>tf") 'rspec-run-last-failed)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>tc") 'rspec-verify-single)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>ta") 'rspec-verify-all)
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>mp") (lambda () (interactive) (me/run-command "bundle exec rubocop")))
+  (evil-define-key 'normal ruby-mode-map (kbd "<leader>mbi") (lambda () (interactive) (me/run-command "bundle install")))
   (evil-define-key 'normal ruby-mode-map (kbd "<leader>tt") 'rspec-toggle-spec-and-target)
   (evil-define-key 'normal ruby-mode-map (kbd "<leader>tv") 'rspec-verify)
   (evil-define-key 'normal ruby-mode-map (kbd "<leader>tl") 'rspec-rerun)
